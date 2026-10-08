@@ -7,6 +7,13 @@ plugins {
 // Without them, release builds fall back to the debug key so the APK is still installable.
 val signingStoreFile: String? = System.getenv("SIGNING_STORE_FILE")
 
+// Release builds (tag pushes) use the tag as the version name, e.g. v2026.10.3 -> "2026.10.3",
+// so Obtainium sees the installed version match the release. Other builds show "dev.<run>".
+// versionCode uses the always-increasing run number so every build installs as an upgrade.
+val runNumber: String = System.getenv("GITHUB_RUN_NUMBER") ?: "1"
+val releaseTag: String? = System.getenv("GITHUB_REF_NAME")
+    ?.takeIf { System.getenv("GITHUB_REF_TYPE") == "tag" }
+
 android {
     namespace = "io.hacalsync"
     compileSdk = 34
@@ -15,8 +22,8 @@ android {
         applicationId = "io.hacalsync"
         minSdk = 26          // java.time without desugaring
         targetSdk = 34
-        versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
-        versionName = "0.1.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
+        versionCode = runNumber.toInt()
+        versionName = releaseTag?.removePrefix("v") ?: "dev.$runNumber"
     }
 
     signingConfigs {

@@ -168,7 +168,9 @@ Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md
 2. Let Gradle sync, then **Run** on a device or use **Build › Build APK(s)**.
 
 ### GitHub Actions
-Every push to `main` builds an APK. Pushing a tag like `v0.2.0` also publishes a GitHub Release.
+Every push to `main` builds an APK (version shown as `dev.<build>`). Pushing a tag like
+`v2026.10.3` (or `2026.10.3`) publishes a GitHub Release, and the app's version name is set
+from the tag so Obtainium recognises it as installed.
 
 For updates to install over previous versions, every build must be signed with the same key.
 Create one once:

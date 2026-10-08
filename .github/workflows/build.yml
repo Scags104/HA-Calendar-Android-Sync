@@ -3,7 +3,7 @@ name: Build APK
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    tags: ["v*", "[0-9]*"]   # v2026.10.3 or 2026.10.3
   pull_request:
   workflow_dispatch:
 
@@ -47,7 +47,12 @@ jobs:
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           gradle --no-daemon assembleRelease
-          mv app/build/outputs/apk/release/*.apk "ha-calendar-sync-${GITHUB_RUN_NUMBER}.apk"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            NAME="ha-calendar-sync-${GITHUB_REF_NAME#v}"
+          else
+            NAME="ha-calendar-sync-build${GITHUB_RUN_NUMBER}"
+          fi
+          mv app/build/outputs/apk/release/*.apk "$NAME.apk"
           sha256sum ha-calendar-sync-*.apk > SHA256SUMS.txt
 
       - name: Remove keystore
@@ -63,7 +68,7 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to create the GitHub Release
