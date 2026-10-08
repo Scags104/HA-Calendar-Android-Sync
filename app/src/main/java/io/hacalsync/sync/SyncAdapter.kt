@@ -43,7 +43,9 @@ class SyncAdapter(context: Context) : AbstractThreadedSyncAdapter(context, true,
         }
 
         try {
-            CalendarSync(account, provider, HaClient(baseUrl, token), syncResult).run(selected)
+            val openInHa = am.getUserData(account, Const.KEY_OPEN_IN_HA) == "1"
+            CalendarSync(account, provider, HaClient(baseUrl, token), syncResult, openInHa, context.packageName)
+                .run(selected)
             record(null)
         } catch (e: HaAuthException) {
             syncResult.stats.numAuthExceptions++

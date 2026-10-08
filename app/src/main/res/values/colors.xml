@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home Assistant-style blue -->
+    <color name="ha_blue">#03A9F4</color>
+    <color name="ha_blue_dark">#0288D1</color>
+    <color name="on_blue">#FFFFFF</color>
+    <color name="on_blue_secondary">#D9F1FD</color>
+
+    <color name="bg">#F3F6F9</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="input_bg">#F8FAFC</color>
+    <color name="outline">#DCE3EA</color>
+    <color name="text_primary">#1B2128</color>
+    <color name="text_secondary">#5F6B76</color>
+    <color name="danger">#D93025</color>
+    <color name="ripple_light">#33FFFFFF</color>
+    <color name="ripple_blue">#2203A9F4</color>
+</resources>

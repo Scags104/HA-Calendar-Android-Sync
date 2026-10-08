@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#101418</color>
+    <color name="surface">#1A2027</color>
+    <color name="input_bg">#141A20</color>
+    <color name="outline">#2E3740</color>
+    <color name="text_primary">#E6EAEE</color>
+    <color name="text_secondary">#9AA6B2</color>
+    <color name="danger">#F28B82</color>
+    <color name="ha_blue_dark">#0277BD</color>
+</resources>

@@ -41,6 +41,9 @@ class CalendarSync(
     private val provider: ContentProviderClient,
     private val client: HaClient,
     private val syncResult: SyncResult,
+    /** Mark events so supporting calendar apps show an "Open in Home Assistant" link. */
+    private val openInHa: Boolean,
+    private val packageName: String,
 ) {
     private val calUri = Calendars.CONTENT_URI.asSyncAdapter()
     private val evUri = Events.CONTENT_URI.asSyncAdapter()
@@ -307,6 +310,9 @@ class CalendarSync(
 
     // ---------------------------------------------------------------- pull (HA -> phone)
 
+    /** Stored hash includes the "Open in HA" setting, so toggling it updates every event. */
+    private fun storedHash(ev: HaEvent): String = ev.contentHash + if (openInHa) "|ha" else ""
+
     private fun pullEvents(cal: HaCalendar, calId: Long, start: Instant, end: Instant) {
         val remote = LinkedHashMap<String, HaEvent>()
         for (ev in client.events(cal.entityId, start, end)) remote[ev.key] = ev
@@ -340,7 +346,7 @@ class CalendarSync(
                     ops += ContentProviderOperation.newInsert(evUri).withValues(eventValues(ev, calId)).build()
                     syncResult.stats.numInserts++
                 }
-                row.second != ev.contentHash -> {
+                row.second != storedHash(ev) -> {
                     ops += ContentProviderOperation.newUpdate(evUri)
                         .withSelection("${Events._ID}=?", arrayOf(row.first.toString()))
                         .withValues(eventValues(ev, calId))
@@ -373,7 +379,14 @@ class CalendarSync(
         put(Events._SYNC_ID, ev.key)
         put(Events.SYNC_DATA1, ev.recurrenceId)
         put(Events.SYNC_DATA2, ev.uid)
-        put(Events.SYNC_DATA3, ev.contentHash)
+        put(Events.SYNC_DATA3, storedHash(ev))
+        if (openInHa) {
+            put(Events.CUSTOM_APP_PACKAGE, packageName)
+            put(Events.CUSTOM_APP_URI, "hacalsync://open")
+        } else {
+            putNull(Events.CUSTOM_APP_PACKAGE)
+            putNull(Events.CUSTOM_APP_URI)
+        }
         put(Events.DIRTY, 0)
     }
 }

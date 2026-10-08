@@ -1,6 +1,7 @@
 package io.hacalsync.ha
 
 import okhttp3.HttpUrl
+import io.hacalsync.Const
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 /**
@@ -27,6 +28,35 @@ object UrlPolicy {
                 "Use https:// for remote access."
         }
         return url
+    }
+
+    private val PATH_CHARS = Regex("^/[A-Za-z0-9._~\\-/]*$")
+    private val QUERY_CHARS = Regex("^[A-Za-z0-9._~\\-=&%+]*$")
+
+    /**
+     * Normalises the "page to open" setting to a path on the user's own HA, e.g.
+     * "/dashboard-family/calendar". Accepts a bare path, a path without the leading slash,
+     * or a full pasted link (only its path and query are kept, never its host).
+     * Rejects anything that could point outside HA (schemes, "//host", "..").
+     */
+    fun checkPath(raw: String?): String {
+        var input = raw?.trim().orEmpty()
+        if (input.isEmpty()) return Const.DEFAULT_OPEN_PATH
+        if (input.startsWith("http://", ignoreCase = true) || input.startsWith("https://", ignoreCase = true)) {
+            val url = input.toHttpUrlOrNull() ?: throw IllegalArgumentException("That link isn't valid")
+            input = url.encodedPath + (url.encodedQuery?.let { "?$it" } ?: "")
+        }
+        if (!input.startsWith("/")) input = "/$input"
+        input = input.trimEnd('/').ifEmpty { "/" }
+
+        val path = input.substringBefore('?')
+        val query = input.substringAfter('?', "")
+        val segments = path.split('/').drop(1)
+        require(
+            PATH_CHARS.matches(path) && !path.startsWith("//") &&
+                segments.none { it == ".." || it == "." } && QUERY_CHARS.matches(query)
+        ) { "The page should look like /dashboard-name/view-name" }
+        return input
     }
 
     fun isLocalHost(host: String): Boolean {

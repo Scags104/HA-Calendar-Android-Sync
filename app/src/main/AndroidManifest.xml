@@ -17,8 +17,9 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="@string/app_name"
-        android:icon="@android:drawable/ic_menu_my_calendar"
-        android:theme="@android:style/Theme.Material.Light.DarkActionBar"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
         <activity
@@ -27,6 +28,23 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- "Open in Home Assistant" link on events. Disabled until the user turns the
+             option on in the app (MainActivity enables/disables this component).
+             It ignores the incoming event data and only opens the user's own saved HA. -->
+        <activity
+            android:name=".OpenInHaActivity"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.provider.calendar.action.HANDLE_CUSTOM_EVENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/event" />
             </intent-filter>
         </activity>
 

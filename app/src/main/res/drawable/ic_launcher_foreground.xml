@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- calendar body -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M38,38h32a6,6 0,0 1,6 6v28a6,6 0,0 1,-6 6h-32a6,6 0,0 1,-6 -6v-28a6,6 0,0 1,6 -6z" />
+    <!-- header divider -->
+    <path android:fillColor="#0288D1" android:pathData="M32,47h44v2.5h-44z" />
+    <!-- binder rings -->
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M45,31a2,2 0,0 1,2 2v8a2,2 0,0 1,-4 0v-8a2,2 0,0 1,2 -2z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M63,31a2,2 0,0 1,2 2v8a2,2 0,0 1,-4 0v-8a2,2 0,0 1,2 -2z" />
+    <!-- sync arrows -->
+    <path android:strokeColor="#03A9F4" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M46,63A8,8 0,0 1,60.93 59" />
+    <path android:fillColor="#03A9F4" android:pathData="M62.93,62.46L63.53,57.5L58.33,60.5z" />
+    <path android:strokeColor="#03A9F4" android:strokeWidth="2.6" android:strokeLineCap="round"
+        android:pathData="M62,63A8,8 0,0 1,47.07 67" />
+    <path android:fillColor="#03A9F4" android:pathData="M45.07,63.54L44.47,68.5L49.67,65.5z" />
+</vector>

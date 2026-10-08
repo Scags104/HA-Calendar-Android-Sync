@@ -89,6 +89,18 @@ and enable the calendars under the account named after your HA host.
 | Check whether sync is working | The app shows the last successful sync and the last error |
 | Remove everything from the phone | Tap **Remove account**; HA is not affected |
 
+### Optional: "Open in Home Assistant" on events
+Turn on **Show "Open in Home Assistant" on events** in the app, optionally choose the
+**Page to open**, and tap **Save & sync**. Calendar apps that support Android's custom-event
+links (such as Etar and AOSP Calendar) then show a link on each event's details that opens
+that page in the Home Assistant app, or on your HA URL in the browser if the app isn't
+installed.
+
+**Page to open:** leave it empty for HA's built-in Calendar page, or enter a dashboard view
+such as `/dashboard-family/calendar`. The easiest way is to open the view in a browser and
+paste the full link; the app keeps only the page part and always opens it on your own HA. Many calendar apps (possibly
+including Google and Samsung Calendar) ignore this link, so it's off by default.
+
 ---
 
 ## How it works

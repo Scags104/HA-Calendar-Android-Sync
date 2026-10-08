@@ -9,6 +9,9 @@ object Const {
     const val KEY_SELECTED = "selected"     // JSON array of calendar entity_ids
     const val KEY_LAST_SYNC = "last_sync"
     const val KEY_LAST_ERROR = "last_error"
+    const val KEY_OPEN_IN_HA = "open_in_ha"   // "1" = show "Open in Home Assistant" on events
+    const val KEY_OPEN_PATH = "open_path"     // HA page to open, e.g. "/dashboard-family/calendar"
+    const val DEFAULT_OPEN_PATH = "/calendar"
 
     /** Periodic background sync. Android enforces a 15 min minimum. */
     const val SYNC_INTERVAL_SECONDS = 30L * 60

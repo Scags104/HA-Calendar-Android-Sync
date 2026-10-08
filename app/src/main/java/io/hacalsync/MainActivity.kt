@@ -4,15 +4,18 @@ import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.app.Activity
+import android.content.ComponentName
 import android.content.ContentResolver
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.CalendarContract
+import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Switch
 import android.widget.TextView
 import io.hacalsync.ha.HaCalendar
 import io.hacalsync.ha.HaClient
@@ -29,6 +32,9 @@ class MainActivity : Activity() {
     private lateinit var tokenField: EditText
     private lateinit var calendarList: LinearLayout
     private lateinit var statusView: TextView
+    private lateinit var openInHaSwitch: Switch
+    private lateinit var openPathGroup: View
+    private lateinit var openPathField: EditText
     private val checkboxes = mutableListOf<Pair<String, CheckBox>>()
 
     private val authority = CalendarContract.AUTHORITY
@@ -43,6 +49,12 @@ class MainActivity : Activity() {
         tokenField = findViewById(R.id.token)
         calendarList = findViewById(R.id.calendar_list)
         statusView = findViewById(R.id.status)
+        openInHaSwitch = findViewById(R.id.open_in_ha)
+        openPathGroup = findViewById(R.id.open_path_group)
+        openPathField = findViewById(R.id.open_path)
+        openInHaSwitch.setOnCheckedChangeListener { _, on ->
+            openPathGroup.visibility = if (on) View.VISIBLE else View.GONE
+        }
 
         findViewById<Button>(R.id.connect).setOnClickListener { loadCalendars() }
         findViewById<Button>(R.id.save).setOnClickListener { save() }
@@ -53,6 +65,8 @@ class MainActivity : Activity() {
 
         existingAccount()?.let { acc ->
             urlField.setText(am.getUserData(acc, Const.KEY_BASE_URL))
+            openInHaSwitch.isChecked = am.getUserData(acc, Const.KEY_OPEN_IN_HA) == "1"
+            openPathField.setText(am.getUserData(acc, Const.KEY_OPEN_PATH).orEmpty())
             // The saved token is never shown again; leaving the field blank keeps it.
             tokenField.hint = "Saved - leave blank to keep the current token"
             loadCalendars()
@@ -121,6 +135,8 @@ class MainActivity : Activity() {
         checkboxes.clear()
         for (cal in cals) {
             val cb = CheckBox(this).apply {
+                minHeight = (48 * resources.displayMetrics.density).toInt()
+                textSize = 15f
                 text = buildString {
                     append(cal.name)
                     append("  ·  ").append(cal.entityId)
@@ -145,6 +161,10 @@ class MainActivity : Activity() {
         val host = runCatching { UrlPolicy.check(url).host }
             .getOrElse { return status(it.message ?: "Invalid URL") }
         val selected = checkboxes.filter { it.second.isChecked }.map { it.first }
+        val openPath = if (openInHaSwitch.isChecked) {
+            runCatching { UrlPolicy.checkPath(openPathField.text.toString()) }
+                .getOrElse { return status("Page to open: ${it.message}") }
+        } else null
 
         var account = existingAccount()
         if (account != null && account.name != host) {
@@ -161,6 +181,12 @@ class MainActivity : Activity() {
         tokenField.hint = "Saved - leave blank to keep the current token"
         am.setUserData(account, Const.KEY_BASE_URL, url)
         am.setUserData(account, Const.KEY_SELECTED, JSONArray(selected).toString())
+        am.setUserData(account, Const.KEY_OPEN_IN_HA, if (openInHaSwitch.isChecked) "1" else "0")
+        if (openPath != null) {
+            am.setUserData(account, Const.KEY_OPEN_PATH, openPath)
+            openPathField.setText(if (openPath == Const.DEFAULT_OPEN_PATH) "" else openPath)
+        }
+        setOpenInHaEnabled(openInHaSwitch.isChecked)
 
         ContentResolver.setIsSyncable(account, authority, 1)
         ContentResolver.setSyncAutomatically(account, authority, true)
@@ -176,6 +202,16 @@ class MainActivity : Activity() {
         )
     }
 
+    /** When off, the "Open in HA" screen is disabled so nothing can launch it. */
+    private fun setOpenInHaEnabled(enabled: Boolean) {
+        packageManager.setComponentEnabledSetting(
+            ComponentName(this, OpenInHaActivity::class.java),
+            if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+            PackageManager.DONT_KILL_APP,
+        )
+    }
+
     private fun requestSync(account: Account) {
         ContentResolver.requestSync(account, authority, Bundle().apply {
             putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
@@ -187,6 +223,8 @@ class MainActivity : Activity() {
         val acc = existingAccount() ?: return status("No account")
         // Removing the account makes the Calendar Provider delete all its calendars and events.
         am.removeAccountExplicitly(acc)
+        setOpenInHaEnabled(false)
+        openInHaSwitch.isChecked = false
         calendarList.removeAllViews()
         checkboxes.clear()
         status("Account removed; its calendars were deleted from the phone")
