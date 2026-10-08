@@ -2,11 +2,21 @@
 # or the GitHub Actions used in CI publish updates (including security fixes).
 version: 2
 updates:
-  - package-ecosystem: "gradle"
-    directory: "/"
-    schedule:
-      interval: "weekly"
+#  - package-ecosystem: "gradle"
+#    directory: "/"
+#    schedule:
+#      interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Build tooling: major upgrades need manual migration, so do them deliberately
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-major"]
