@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- supportsUploading=true: Android triggers a sync as soon as another app
+     edits one of our events, so phone-side changes reach HA quickly. -->
+<sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="com.android.calendar"
+    android:accountType="io.hacalsync.account"
+    android:userVisible="true"
+    android:supportsUploading="true"
+    android:allowParallelSyncs="false"
+    android:isAlwaysSyncable="true" />
