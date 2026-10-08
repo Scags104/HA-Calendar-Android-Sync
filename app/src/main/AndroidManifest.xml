@@ -8,6 +8,19 @@
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.READ_SYNC_STATS" />
 
+    <!-- Android 11+ package visibility: lets the app find the user's calendar apps
+         (to forward non-HA events) and the Home Assistant app. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="vnd.android.cursor.item/event" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="homeassistant" />
+        </intent>
+    </queries>
+
     <!-- usesCleartextTraffic: plain http:// is needed for LAN-only HA instances.
          UrlPolicy.kt only permits http:// for local-network/VPN addresses; every
          other URL must be https://.
@@ -31,18 +44,27 @@
             </intent-filter>
         </activity>
 
-        <!-- "Open in Home Assistant" link on events. Disabled until the user turns the
-             option on in the app (MainActivity enables/disables this component).
-             It ignores the incoming event data and only opens the user's own saved HA. -->
+        <!-- "Open in Home Assistant". Disabled until the user turns the option on in the
+             app (MainActivity enables/disables this component). Opens HA for events from
+             our calendars and forwards every other event to the normal calendar app. -->
         <activity
             android:name=".OpenInHaActivity"
             android:enabled="false"
             android:excludeFromRecents="true"
             android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="Open in Home Assistant"
             android:noHistory="true"
             android:theme="@android:style/Theme.NoDisplay">
+            <!-- "Open in…" link shown by calendar apps such as Etar -->
             <intent-filter>
                 <action android:name="android.provider.calendar.action.HANDLE_CUSTOM_EVENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.item/event" />
+            </intent-filter>
+            <!-- Event taps from launchers (e.g. Niagara) and widgets -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.item/event" />
             </intent-filter>

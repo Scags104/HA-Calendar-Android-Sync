@@ -149,7 +149,7 @@
 
                 <TextView
                     style="@style/Caption"
-                    android:text="Adds a link on each event's details. Only some calendar apps (e.g. Etar) show it." />
+                    android:text="Launchers and widgets (e.g. Niagara): tap an event and choose &quot;Open in Home Assistant&quot;. HA events open the page below; other events go to your usual calendar app. Some calendar apps (e.g. Etar) also show an &quot;Open in…&quot; link on HA events." />
 
                 <!-- Only visible while the switch is on -->
                 <LinearLayout

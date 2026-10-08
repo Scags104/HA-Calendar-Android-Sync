@@ -91,10 +91,17 @@ and enable the calendars under the account named after your HA host.
 
 ### Optional: "Open in Home Assistant" on events
 Turn on **Show "Open in Home Assistant" on events** in the app, optionally choose the
-**Page to open**, and tap **Save & sync**. Calendar apps that support Android's custom-event
-links (such as Etar and AOSP Calendar) then show a link on each event's details that opens
-that page in the Home Assistant app, or on your HA URL in the browser if the app isn't
-installed.
+**Page to open**, and tap **Save & sync**. That page opens in the Home Assistant app, or on
+your HA URL in the browser if the app isn't installed.
+
+- **Launchers and widgets** (e.g. Niagara): when you tap an event and Android asks which app
+  to use, choose **Open in Home Assistant** (tap **Always** to skip the question next time).
+  Events from your HA calendars open Home Assistant; every other event is passed on to your
+  usual calendar app.
+- **Calendar apps** that support Android's custom-event links (such as Etar and AOSP
+  Calendar) show an "Open in…" link on the details of HA events.
+
+When the option is off, the app doesn't appear in the "which app" list at all.
 
 **Page to open:** leave it empty for HA's built-in Calendar page, or enter a dashboard view
 such as `/dashboard-family/calendar`. The easiest way is to open the view in a browser and
