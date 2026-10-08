@@ -8,6 +8,7 @@ import android.content.ContentResolver
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.CalendarContract
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -15,7 +16,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import io.hacalsync.ha.HaCalendar
 import io.hacalsync.ha.HaClient
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import io.hacalsync.ha.UrlPolicy
 import org.json.JSONArray
 import java.util.concurrent.Executors
 
@@ -34,6 +35,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Keep the token screen out of screenshots, screen recordings and the recents thumbnail.
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContentView(R.layout.activity_main)
 
         urlField = findViewById(R.id.url)
@@ -50,7 +53,8 @@ class MainActivity : Activity() {
 
         existingAccount()?.let { acc ->
             urlField.setText(am.getUserData(acc, Const.KEY_BASE_URL))
-            tokenField.setText(am.getPassword(acc))
+            // The saved token is never shown again; leaving the field blank keeps it.
+            tokenField.hint = "Saved - leave blank to keep the current token"
             loadCalendars()
         }
 
@@ -79,10 +83,23 @@ class MainActivity : Activity() {
         statusView.text = text
     }
 
+    /**
+     * The typed token, or the saved one if the field was left blank. The saved token is only
+     * reused for the exact URL it was saved with, so editing the URL can never send it elsewhere.
+     */
+    private fun effectiveToken(url: String): String? {
+        val typed = tokenField.text.toString().trim()
+        if (typed.isNotEmpty()) return typed
+        val acc = existingAccount() ?: return null
+        val savedUrl = am.getUserData(acc, Const.KEY_BASE_URL)?.trim()?.trimEnd('/')
+        return if (savedUrl == url.trim().trimEnd('/')) am.getPassword(acc)?.takeIf { it.isNotEmpty() } else null
+    }
+
     private fun loadCalendars() {
         val url = urlField.text.toString().trim()
-        val token = tokenField.text.toString().trim()
-        if (url.isEmpty() || token.isEmpty()) return status("Enter URL and token")
+        val token = effectiveToken(url)
+        if (url.isEmpty() || token == null) return status("Enter URL and token (a changed URL needs the token re-entered)")
+        runCatching { UrlPolicy.check(url) }.onFailure { return status(it.message ?: "Invalid URL") }
 
         status("Connecting…")
         io.execute {
@@ -124,8 +141,9 @@ class MainActivity : Activity() {
         if (checkboxes.isEmpty()) return status("Connect and load calendars first")
 
         val url = urlField.text.toString().trim().trimEnd('/')
-        val token = tokenField.text.toString().trim()
-        val host = runCatching { url.toHttpUrl().host }.getOrNull() ?: return status("Invalid URL")
+        val token = effectiveToken(url) ?: return status("Enter the token (a changed URL needs it re-entered)")
+        val host = runCatching { UrlPolicy.check(url).host }
+            .getOrElse { return status(it.message ?: "Invalid URL") }
         val selected = checkboxes.filter { it.second.isChecked }.map { it.first }
 
         var account = existingAccount()
@@ -139,6 +157,8 @@ class MainActivity : Activity() {
         } else {
             am.setPassword(account, token)
         }
+        tokenField.text.clear()
+        tokenField.hint = "Saved - leave blank to keep the current token"
         am.setUserData(account, Const.KEY_BASE_URL, url)
         am.setUserData(account, Const.KEY_SELECTED, JSONArray(selected).toString())
 

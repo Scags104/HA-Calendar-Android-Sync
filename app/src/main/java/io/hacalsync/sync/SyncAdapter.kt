@@ -6,9 +6,10 @@ import android.content.AbstractThreadedSyncAdapter
 import android.content.ContentProviderClient
 import android.content.Context
 import android.content.SyncResult
+import android.content.pm.ApplicationInfo
 import android.os.Bundle
-import android.util.Log
 import io.hacalsync.Const
+import io.hacalsync.ha.DebugLog
 import io.hacalsync.ha.HaAuthException
 import io.hacalsync.ha.HaClient
 import org.json.JSONArray
@@ -16,6 +17,10 @@ import java.io.IOException
 import java.time.Instant
 
 class SyncAdapter(context: Context) : AbstractThreadedSyncAdapter(context, true, false) {
+
+    init {
+        DebugLog.enabled = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    }
 
     override fun onPerformSync(
         account: Account,
@@ -47,7 +52,7 @@ class SyncAdapter(context: Context) : AbstractThreadedSyncAdapter(context, true,
             syncResult.stats.numIoExceptions++   // Android retries with backoff
             record("Network: ${e.message}")
         } catch (e: Exception) {
-            Log.e("HaCalSync", "Sync failed", e)
+            DebugLog.e("Sync failed", e)
             syncResult.databaseError = true
             record("${e.javaClass.simpleName}: ${e.message}")
         }

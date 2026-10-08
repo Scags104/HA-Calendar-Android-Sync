@@ -11,10 +11,10 @@ import android.net.Uri
 import android.provider.CalendarContract
 import android.provider.CalendarContract.Calendars
 import android.provider.CalendarContract.Events
-import android.util.Log
 import io.hacalsync.Const
 import io.hacalsync.ha.HaCalendar
 import io.hacalsync.ha.HaClient
+import io.hacalsync.ha.DebugLog
 import io.hacalsync.ha.HaCommandException
 import io.hacalsync.ha.HaEvent
 import io.hacalsync.ha.HaWebSocket
@@ -26,8 +26,6 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.TimeZone
-
-private const val TAG = "HaCalSync"
 
 /**
  * Column usage on Android event rows we own:
@@ -236,7 +234,7 @@ class CalendarSync(
                 }
             } catch (e: HaCommandException) {
                 // HA refused the change. Discard it locally; the pull restores HA's version.
-                Log.w(TAG, "Reverting local change to event ${ev.id}: ${e.message}")
+                DebugLog.w("Reverting local change to event ${ev.id}: ${e.message}")
                 syncResult.stats.numSkippedEntries++
                 if (ev.deleted || ev.syncId == null) deleteRow(ev.id) else markCleanAndStale(ev.id)
             }

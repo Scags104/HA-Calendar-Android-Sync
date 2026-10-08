@@ -67,7 +67,8 @@ is ever lost:
 1. Open **HA Calendar Sync** and grant calendar access when asked.
 2. Enter your Home Assistant URL, e.g. `https://myhome.ui.nabu.casa` or
    `http://192.168.1.10:8123`. Use an address that works wherever you want sync to work;
-   a LAN-only address only syncs at home.
+   a LAN-only address only syncs at home. `http://` is only accepted for local-network and
+   VPN addresses; anything reachable from the internet must use `https://`.
 3. Paste the token and tap **Connect & load calendars**.
 4. Tick the calendars you want on your phone and tap **Save & sync**.
 
@@ -126,17 +127,37 @@ truth. If HA rejects a change, the phone version is discarded and HA's version i
 | Calendars don't appear in my calendar app | Enable them in the calendar app's calendar list (see setup step 4) |
 | Background sync never runs | Turn on Android's global auto-sync: **Settings › Accounts › Automatically sync data** |
 | "rejected the token" error | The token was deleted or mistyped; create a new one and re-enter it |
+| "http:// is only allowed for local network addresses" | Use your `https://` URL for remote access |
 | Network errors away from home | Your URL is LAN-only; use your external or Nabu Casa URL |
 | An edit snapped back to the old version | HA refused it; that calendar or event isn't editable |
 | Battery saver delays sync | Exclude the app from battery optimization |
 
-## Security notes
+## Privacy & security
 
+**Where your data goes:** only between your phone and the Home Assistant URL you enter.
+The app has no analytics, crash reporting, ads, or any other network destination.
+
+- The URL and token are stored on the phone in Android's AccountManager. They are never in
+  the APK or this repository, are excluded from backups, and are never written to logs.
+- After saving, the token is never shown again. Changing the URL requires re-entering the
+  token, so it can't be sent to a different server by accident.
+- The token field blocks autofill and keyboard learning, and the setup screen blocks
+  screenshots and screen recording.
+- HTTP redirects are refused, so the token only ever goes to the exact URL you entered.
+- `http://` is only allowed for local-network/VPN addresses; everything else requires
+  `https://` with a valid certificate.
+- Synced events live in Android's calendar storage, where (like any calendar) apps you've
+  granted calendar permission can read them. They are not uploaded to Google or anywhere
+  else, because the calendars belong to this app's local account.
+
+**Recommendations:**
 - Use a **non-admin HA user** for the token (see setup). HA has no per-entity permissions,
   so the token can still control devices, but it can't change your HA configuration.
 - If your phone is lost, **delete the token** in HA (or deactivate the sync user).
-- Prefer an `https://` URL. Plain `http://` is allowed for LAN-only setups.
-- The token is stored in Android's AccountManager and is never logged.
+- Don't sync calendars that drive **security-sensitive automations** (locks, alarms).
+  Any app with calendar write permission on your phone could add events to them.
+
+Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md).
 
 ---
 

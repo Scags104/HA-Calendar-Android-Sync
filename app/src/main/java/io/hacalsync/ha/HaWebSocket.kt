@@ -1,5 +1,6 @@
 package io.hacalsync.ha
 
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit
  * Used for calendar/event/create, calendar/event/update and calendar/event/delete,
  * which are the commands the HA frontend uses for editing calendars.
  */
-class HaWebSocket(http: OkHttpClient, wsUrl: String, token: String) : Closeable {
+class HaWebSocket(http: OkHttpClient, wsUrl: HttpUrl, token: String) : Closeable {
 
     private val inbox = LinkedBlockingQueue<JSONObject>()
     private var nextId = 1
@@ -31,7 +32,7 @@ class HaWebSocket(http: OkHttpClient, wsUrl: String, token: String) : Closeable 
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                inbox.put(JSONObject().put("type", "__failure").put("message", t.message ?: t.toString()))
+                inbox.put(JSONObject().put("type", "__failure").put("message", t.javaClass.simpleName))
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {

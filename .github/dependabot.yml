@@ -1,0 +1,12 @@
+# Opens pull requests when OkHttp, the Android Gradle plugin, Kotlin,
+# or the GitHub Actions used in CI publish updates (including security fixes).
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

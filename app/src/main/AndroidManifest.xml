@@ -8,9 +8,14 @@
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.READ_SYNC_STATS" />
 
-    <!-- usesCleartextTraffic: allows plain http:// for a LAN-only HA instance.
-         Remove it if you only ever use https. -->
+    <!-- usesCleartextTraffic: plain http:// is needed for LAN-only HA instances.
+         UrlPolicy.kt only permits http:// for local-network/VPN addresses; every
+         other URL must be https://.
+         allowBackup / dataExtractionRules: nothing from this app is included in
+         cloud backups or device-to-device transfers. -->
     <application
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="@string/app_name"
         android:icon="@android:drawable/ic_menu_my_calendar"
         android:theme="@android:style/Theme.Material.Light.DarkActionBar"

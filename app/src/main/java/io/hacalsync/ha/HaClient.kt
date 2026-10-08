@@ -2,7 +2,6 @@ package io.hacalsync.ha
 
 import io.hacalsync.Const
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
@@ -55,14 +54,25 @@ data class HaEvent(
 
 class HaClient(baseUrl: String, private val token: String) {
 
-    val baseUrl: String = baseUrl.trim().trimEnd('/')
+    /** Validated root URL; throws IllegalArgumentException for unsafe URLs. */
+    private val root: HttpUrl = UrlPolicy.check(baseUrl)
 
     val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
+        // HA's API never redirects. Refusing redirects guarantees the token is only
+        // ever sent to the exact URL the user entered (no https -> http downgrade,
+        // no hand-off to another host).
+        .followRedirects(false)
+        .followSslRedirects(false)
         .build()
 
-    private fun url(path: String): HttpUrl = "$baseUrl/$path".toHttpUrl()
+    /** Builds root + path segments, encoding each segment safely. */
+    private fun url(vararg segments: String): HttpUrl {
+        val b = root.newBuilder()
+        for (seg in segments) b.addPathSegment(seg)
+        return b.build()
+    }
 
     private fun get(url: HttpUrl): String {
         val request = Request.Builder()
@@ -73,19 +83,20 @@ class HaClient(baseUrl: String, private val token: String) {
             if (r.code == 401 || r.code == 403) {
                 throw HaAuthException("Home Assistant rejected the token (HTTP ${r.code})")
             }
-            if (!r.isSuccessful) throw IOException("HTTP ${r.code} from ${url.encodedPath}")
+            if (r.isRedirect) throw IOException("Server tried to redirect (HTTP ${r.code}); check the URL")
+            if (!r.isSuccessful) throw IOException("HTTP ${r.code} from Home Assistant")
             return r.body?.string().orEmpty()
         }
     }
 
     /** All calendar entities, with their supported_features from the state machine. */
     fun listCalendars(): List<HaCalendar> {
-        val arr = JSONArray(get(url("api/calendars")))
+        val arr = JSONArray(get(url("api", "calendars")))
         return (0 until arr.length()).map { i ->
             val c = arr.getJSONObject(i)
             val id = c.getString("entity_id")
             val features = runCatching {
-                JSONObject(get(url("api/states/$id")))
+                JSONObject(get(url("api", "states", id)))
                     .optJSONObject("attributes")
                     ?.optInt("supported_features", 0) ?: 0
             }.getOrElse { e -> if (e is HaAuthException) throw e else 0 }
@@ -94,7 +105,7 @@ class HaClient(baseUrl: String, private val token: String) {
     }
 
     fun events(entityId: String, start: Instant, end: Instant): List<HaEvent> {
-        val u = url("api/calendars/$entityId").newBuilder()
+        val u = url("api", "calendars", entityId).newBuilder()
             .addQueryParameter("start", start.truncatedTo(ChronoUnit.SECONDS).toString())
             .addQueryParameter("end", end.truncatedTo(ChronoUnit.SECONDS).toString())
             .build()
@@ -102,10 +113,8 @@ class HaClient(baseUrl: String, private val token: String) {
         return (0 until arr.length()).mapNotNull { parseEvent(arr.getJSONObject(it)) }
     }
 
-    fun openWebSocket(): HaWebSocket {
-        val wsUrl = baseUrl.replaceFirst(Regex("^http", RegexOption.IGNORE_CASE), "ws") + "/api/websocket"
-        return HaWebSocket(http, wsUrl, token)
-    }
+    /** OkHttp takes the http(s) URL and upgrades it to ws(s) itself, on the same validated host. */
+    fun openWebSocket(): HaWebSocket = HaWebSocket(http, url("api", "websocket"), token)
 
     companion object {
         private fun JSONObject.str(key: String): String? =
