@@ -1,61 +1,209 @@
-# HA Calendar Sync
+# HA Calendar Android Sync
 
-Android app that exposes Home Assistant `calendar.*` entities as **system calendars**
-(CalendarContract) with two-way sync, so any calendar app, widget, launcher or watch
-can show and edit them. No HA add-on is needed; it talks to the HA API directly.
+Two-way sync between **Home Assistant calendar entities** and **Android's system calendar**.
 
-## Build & install
-1. Open this folder in Android Studio (Koala or newer). Let it sync Gradle
-   (it creates the Gradle wrapper on first open).
-2. Run on your device, or *Build › Build APK(s)* and sideload.
+Once set up, your HA calendars show up in Google Calendar, Samsung Calendar, Etar, home-screen
+widgets, launchers, Wear OS, and any other app that reads the Android calendar. Events you create,
+edit, or delete in those apps are written back to Home Assistant.
+
+> **Status:** experimental, personal project. Intended as a stopgap until the official
+> Home Assistant Companion app supports this natively. Not affiliated with Home Assistant
+> or Nabu Casa.
+
+---
+
+## Features
+
+- Pick which `calendar.*` entities to sync
+- Calendars appear as normal system calendars, visible to every calendar app and widget
+- Two-way sync: create, edit, and delete events from the phone
+- Calendars HA can't edit are shown as read-only on the phone
+- Background sync every 30 minutes; phone-side edits are pushed within seconds
+- No Home Assistant add-on or custom integration required; uses HA's built-in API
+
+## Requirements
+
+- Android 8.0 or newer
+- A Home Assistant instance reachable from the phone (local URL, Nabu Casa, or your own domain)
+- A long-lived access token (see setup below)
+
+---
+
+## Installation
+
+### Option A: Download a release
+1. Go to the [Releases](https://github.com/Scags104/HA-Calendar-Android-Sync/releases) page.
+2. Download the latest `ha-calendar-sync-*.apk` to your phone.
+3. Open it and allow installing from your browser or file manager when Android asks.
+
+### Option B: Automatic updates with Obtainium
+1. Install [Obtainium](https://github.com/ImranR98/Obtainium).
+2. Add this repository's URL as a new app.
+3. Obtainium installs the latest release and notifies you of updates.
+
+### Option C: Latest development build
+Open the [Actions](https://github.com/Scags104/HA-Calendar-Android-Sync/actions) tab, select the
+most recent successful **Build APK** run, and download the APK from **Artifacts**
+(requires a GitHub login).
+
+---
 
 ## Setup
-1. In HA: Profile › Security › **Long-lived access tokens** › Create.
-2. Open the app, enter your HA URL (Nabu Casa / external URL if you want sync off-LAN)
-   and the token, then tap **Connect**.
-3. Tick the calendars to sync, then tap **Save & sync**.
-4. In your calendar app, enable the new calendars (they appear under an account
-   named after your HA host).
+
+### 1. Create a dedicated Home Assistant user (recommended)
+The app stores a token that can do anything its HA user can do. Limit the damage if your phone
+is ever lost:
+
+1. In HA, go to **Settings › People › Users** and add a user, e.g. `phone-calendar-sync`.
+2. Leave **Administrator** unchecked.
+3. Log in as that user once.
+
+### 2. Create a long-lived access token
+1. While logged in as the sync user, open your **Profile › Security**.
+2. Under **Long-lived access tokens**, select **Create token**, name it (e.g. "Pixel calendar"),
+   and copy it. HA only shows it once.
+
+### 3. Configure the app
+1. Open **HA Calendar Sync** and grant calendar access when asked.
+2. Enter your Home Assistant URL, e.g. `https://myhome.ui.nabu.casa` or
+   `http://192.168.1.10:8123`. Use an address that works wherever you want sync to work;
+   a LAN-only address only syncs at home.
+3. Paste the token and tap **Connect & load calendars**.
+4. Tick the calendars you want on your phone and tap **Save & sync**.
+
+### 4. Show the calendars in your calendar app
+Most calendar apps hide newly added calendars. Open your calendar app's settings or calendar list
+and enable the calendars under the account named after your HA host.
+
+---
+
+## Usage
+
+| What you want | What to do |
+|---|---|
+| See HA events on the phone | Nothing; they sync automatically every 30 minutes |
+| Add, edit, or delete an event | Do it in any calendar app; it reaches HA within seconds |
+| Force a refresh | Open the app and tap **Sync now**, or use Android's account sync settings |
+| Change which calendars sync | Open the app, tap **Connect**, change the ticks, tap **Save & sync** |
+| Check whether sync is working | The app shows the last successful sync and the last error |
+| Remove everything from the phone | Tap **Remove account**; HA is not affected |
+
+---
 
 ## How it works
-| Direction | Mechanism |
-|---|---|
-| HA → phone | `GET /api/calendars/<entity>?start=&end=` every 30 min, plus on demand |
-| phone → HA | WebSocket `calendar/event/create`, `calendar/event/update`, `calendar/event/delete` |
 
-Android triggers an upload sync immediately whenever another app edits one of these
-events (`supportsUploading=true`), so phone edits reach HA within seconds.
-Each sync pushes local changes first, then pulls and diffs (insert/update/delete).
+The app registers an Android account and a sync adapter, the same mechanism DAVx5 and Google use.
+Each selected HA calendar becomes a calendar under that account.
 
-Write access per calendar follows HA's `supported_features`: calendars that can't be
-edited (e.g. many integration-provided ones) are marked read-only on the phone.
-If HA rejects a change, the local edit is discarded and HA's version is restored.
+- **HA → phone:** events are fetched with `GET /api/calendars/<entity_id>` over a window of
+  30 days back to 365 days ahead, then compared with what's on the phone.
+- **Phone → HA:** changes are sent over HA's WebSocket API using
+  `calendar/event/create`, `calendar/event/update`, and `calendar/event/delete`.
+
+Each sync sends phone changes first, then pulls from HA, so Home Assistant stays the source of
+truth. If HA rejects a change, the phone version is discarded and HA's version is restored.
+
+---
 
 ## Known limitations
-- **Sync window:** 30 days back to 365 days ahead (`Const.kt`).
-- **Recurring events** come down as individual instances. Editing or deleting one on the
-  phone affects **only that occurrence**; to change a whole series, use HA.
-  Creating a new recurring event on the phone works (the RRULE is sent to HA).
-- **Events created on the phone** are re-inserted after sync with HA's identity. Any
-  reminders added in the calendar app at creation time are lost; set reminders afterwards.
-- Attendees, colors per event and attachments aren't synced (HA has no fields for them).
-- The token has full HA admin rights. It is stored in Android's AccountManager.
-- `usesCleartextTraffic="true"` allows `http://` LAN URLs; remove it if you use https only.
 
-## Building on GitHub
-Every push to `main` builds an APK (download it from the run's **Artifacts**).
-Pushing a tag like `v0.1.0` also attaches the APK to a GitHub Release.
+- **Sync window:** only events from 30 days ago to 365 days ahead are on the phone.
+- **Recurring events** arrive as individual occurrences. Editing or deleting one from the phone
+  affects only that occurrence. Edit whole series in Home Assistant. Creating a new recurring
+  event on the phone works.
+- **New events created on the phone** are replaced after sync by HA's copy. Reminders added
+  while creating the event are lost; add reminders afterwards.
+- **Not synced:** attendees, per-event colours, attachments (HA has no fields for these).
+- **Read-only calendars:** some integrations don't support editing; those calendars are
+  read-only on the phone.
+- **Not instant from HA:** changes made in HA appear on the phone at the next 30-minute sync
+  or when you tap **Sync now**.
 
-For updates to install over the previous version, every build must be signed with
-the same key. Create one once, locally:
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Calendars don't appear in my calendar app | Enable them in the calendar app's calendar list (see setup step 4) |
+| Background sync never runs | Turn on Android's global auto-sync: **Settings › Accounts › Automatically sync data** |
+| "rejected the token" error | The token was deleted or mistyped; create a new one and re-enter it |
+| Network errors away from home | Your URL is LAN-only; use your external or Nabu Casa URL |
+| An edit snapped back to the old version | HA refused it; that calendar or event isn't editable |
+| Battery saver delays sync | Exclude the app from battery optimization |
+
+## Security notes
+
+- Use a **non-admin HA user** for the token (see setup). HA has no per-entity permissions,
+  so the token can still control devices, but it can't change your HA configuration.
+- If your phone is lost, **delete the token** in HA (or deactivate the sync user).
+- Prefer an `https://` URL. Plain `http://` is allowed for LAN-only setups.
+- The token is stored in Android's AccountManager and is never logged.
+
+---
+
+## Building from source
+
+### Android Studio
+1. Clone the repo and open it in Android Studio (Koala or newer).
+2. Let Gradle sync, then **Run** on a device or use **Build › Build APK(s)**.
+
+### GitHub Actions
+Every push to `main` builds an APK. Pushing a tag like `v0.2.0` also publishes a GitHub Release.
+
+For updates to install over previous versions, every build must be signed with the same key.
+Create one once:
 
 ```sh
-keytool -genkeypair -v -keystore release.jks -alias hacal \
-  -keyalg RSA -keysize 2048 -validity 10000
-base64 -w0 release.jks   # macOS: base64 -i release.jks
+keytool -genkeypair -v -keystore release.jks -alias hacal -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 release.jks    # macOS: base64 -i release.jks
 ```
 
-Then add these repository secrets (Settings › Secrets and variables › Actions):
-`KEYSTORE_BASE64` (the base64 output), `SIGNING_STORE_PASSWORD`,
-`SIGNING_KEY_ALIAS` (`hacal`), `SIGNING_KEY_PASSWORD`.
-Keep `release.jks` backed up and out of the repo.
+Then add these **repository secrets** under **Settings › Secrets and variables › Actions**:
+
+| Secret | Value |
+|---|---|
+| `KEYSTORE_BASE64` | the base64 output |
+| `SIGNING_STORE_PASSWORD` | the keystore password |
+| `SIGNING_KEY_ALIAS` | `hacal` |
+| `SIGNING_KEY_PASSWORD` | the key password (usually the same as the keystore password) |
+
+Keep `release.jks` backed up and **never commit it**. If it's lost, future builds can't be
+installed over existing ones.
+
+### Project layout
+
+```
+app/src/main/java/io/hacalsync/
+├── MainActivity.kt          setup screen
+├── Const.kt                 settings (sync interval, window, account type)
+├── auth/                    Android account authenticator
+├── ha/                      Home Assistant REST and WebSocket clients
+└── sync/                    sync adapter and two-way sync engine (CalendarSync.kt)
+```
+
+---
+
+## 🤖 AI disclosure: this project is vibecoded
+
+This app was built through conversation with **Claude**, an AI assistant made by Anthropic.
+The design, Kotlin source, build configuration, GitHub Actions workflow, and this README were
+generated by AI from my descriptions of what I wanted, then assembled into this repository by me.
+
+What that means for you:
+
+- **The code has not been professionally reviewed or audited.** It may contain bugs, edge cases
+  that lose or duplicate events, or security issues that an experienced Android developer would
+  catch.
+- **It handles a credential with broad access to your home.** Read the code (it's small) and use
+  a non-admin HA user before trusting it.
+- **Back up important calendars** before syncing them, especially if you plan to edit from the
+  phone.
+- Issues and pull requests from people who know Android sync adapters or the HA calendar API
+  are very welcome.
+
+Use at your own risk.
+
+---
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
